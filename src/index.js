@@ -1,4 +1,7 @@
 // Unified ChittyOS Worker - Consolidating all services into one
+import { handleAnalytics } from "./analytics.js";
+import { handleServices } from "./services.js";
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -40,6 +43,16 @@ export default {
         return await handleLanding(request, env, ctx);
       }
 
+      // Analytics endpoint
+      if (pathname === "/analytics") {
+        return await handleAnalytics(request, env);
+      }
+
+      // API services endpoints
+      if (pathname.startsWith("/api/")) {
+        return await handleServices(request, env);
+      }
+
       // Health check endpoint
       if (pathname === "/health") {
         return new Response(
@@ -52,6 +65,10 @@ export default {
               "chain",
               "cto",
               "landing",
+              "analytics",
+              "ai",
+              "workflows",
+              "vectorize",
             ],
             timestamp: new Date().toISOString(),
           }),

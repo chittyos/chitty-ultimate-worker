@@ -34,6 +34,64 @@ new_classes = ["AIGatewayState", "ChittyOSPlatformState", "SyncState"]
 [ai]
 binding = "AI"
 
+# D1 Database binding (alternative to KV for structured data)
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "chittyos-database"
+# database_id = "NEEDS_D1_DATABASE_ID"
+
+# AI Gateway binding for managing AI requests
+# [ai_gateway]
+# binding = "AI_GATEWAY"
+# gateway_id = "NEEDS_GATEWAY_ID"
+
+# Vectorize binding for vector database
+# [[vectorize]]
+# binding = "VECTORIZE"
+# index_name = "chittyos-vectors"
+
+# Workflows binding for durable execution
+# [[workflows]]
+# binding = "WORKFLOWS"
+# class_name = "ChittyOSWorkflow"
+
+# R2 bucket for storage
+# [[r2_buckets]]
+# binding = "STORAGE"
+# bucket_name = "chittyos-storage"
+
+# Queues for async processing
+# [[queues.producers]]
+# binding = "QUEUE"
+# queue = "chittyos-queue"
+
+# Workers for Platforms dispatch namespace
+# [dispatch_namespaces]
+# binding = "DISPATCH"
+# namespace = "chittyos-tenants"
+
+# Pipelines for data streaming
+# [[pipelines]]
+# binding = "PIPELINE"
+# pipeline = "chittyos-events"
+
+# Hyperdrive for database connections
+# [[hyperdrive]]
+# binding = "DATABASE"
+# id = "NEEDS_HYPERDRIVE_ID"
+
+# Browser Rendering for dynamic content
+# [browser]
+# binding = "BROWSER"
+
+# Email routing
+# [send_email]
+# binding = "EMAIL"
+
+# Web3 gateway for blockchain
+# [web3]
+# binding = "WEB3"
+
 # Routes for main domains (add more as needed)
 # Using route patterns without zone_name since we'll configure in dashboard
 # routes = [
