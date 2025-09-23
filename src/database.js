@@ -1,119 +1,179 @@
-// Neon Database Module for ChittyOS - Optimized for Cloudflare Workers
-import { neon } from "@neondatabase/serverless";
+// Neon + Hyperdrive Database Module for ChittyOS
+import { Client } from "@neondatabase/serverless";
 
-export class NeonDatabase {
+export class DatabaseService {
   constructor(env) {
-    // Use either Hyperdrive or direct Neon connection
-    if (env.HYPERDRIVE) {
-      // Hyperdrive for connection pooling and caching
-      this.sql = neon(env.HYPERDRIVE.connectionString);
-    } else {
-      // Direct Neon serverless driver
-      this.sql = neon(env.NEON_DATABASE_URL);
+    // Hyperdrive automatically manages connection pooling
+    this.hyperdrive = env.HYPERDRIVE;
+  }
+
+  // Get database client through Hyperdrive
+  getClient() {
+    if (!this.hyperdrive) {
+      throw new Error("Hyperdrive not configured");
+    }
+
+    // Hyperdrive provides the connection string with pooling
+    return new Client(this.hyperdrive.connectionString);
+  }
+
+  // Execute query with automatic connection management
+  async query(sql, params = []) {
+    const client = this.getClient();
+
+    try {
+      await client.connect();
+      const result = await client.query(sql, params);
+      return result.rows;
+    } finally {
+      await client.end();
     }
   }
 
-  async query(text, params = []) {
-    // Neon serverless driver handles everything
-    const result = await this.sql(text, params);
-    return result;
+  // Batch queries for efficiency
+  async transaction(queries) {
+    const client = this.getClient();
+
+    try {
+      await client.connect();
+      await client.query("BEGIN");
+
+      const results = [];
+      for (const { sql, params } of queries) {
+        results.push(await client.query(sql, params));
+      }
+
+      await client.query("COMMIT");
+      return results;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      await client.end();
+    }
   }
 
-  // AI agent memory storage
-  async storeAgentMemory(agentId, conversation) {
+  // Vector similarity search using pgvector
+  async vectorSearch(embedding, tableName = "embeddings", limit = 10) {
     const sql = `
-      INSERT INTO agent_memories (agent_id, conversation, embedding, created_at)
-      VALUES ($1, $2, $3, NOW())
-      RETURNING id
-    `;
-
-    const embedding = await this.generateEmbedding(conversation);
-    return await this.query(sql, [agentId, conversation, embedding]);
-  }
-
-  // Vector similarity search for RAG
-  async semanticSearch(queryVector, limit = 10) {
-    const sql = `
-      SELECT id, conversation, 1 - (embedding <=> $1::vector) as similarity
-      FROM agent_memories
-      ORDER BY embedding <=> $1::vector
+      SELECT *, embedding <-> $1 as distance
+      FROM ${tableName}
+      ORDER BY embedding <-> $1
       LIMIT $2
     `;
 
-    return await this.query(sql, [queryVector, limit]);
+    return await this.query(sql, [embedding, limit]);
+  }
+
+  // Store embeddings with metadata
+  async storeEmbedding(id, embedding, metadata = {}) {
+    const sql = `
+      INSERT INTO embeddings (id, embedding, metadata, created_at)
+      VALUES ($1, $2, $3, NOW())
+      ON CONFLICT (id)
+      DO UPDATE SET
+        embedding = EXCLUDED.embedding,
+        metadata = EXCLUDED.metadata,
+        updated_at = NOW()
+    `;
+
+    return await this.query(sql, [id, embedding, metadata]);
   }
 
   // Multi-tenant data isolation
-  async getTenantData(tenantId, table) {
+  async getTenantData(tenantId, tableName) {
     const sql = `
-      SELECT * FROM ${table}
+      SELECT * FROM ${tableName}
       WHERE tenant_id = $1
+      ORDER BY created_at DESC
     `;
 
     return await this.query(sql, [tenantId]);
   }
 
-  // Database branching for testing
-  async createBranch(branchName) {
-    // This would use Neon API to create a branch
-    // Branches are managed through Neon console or API
-    return {
-      branch: branchName,
-      status: "Branch creation requires Neon API",
-      note: "Use Neon console or API to manage branches",
-    };
+  // AI agent memory storage
+  async storeAgentMemory(sessionId, messages) {
+    const sql = `
+      INSERT INTO agent_sessions (session_id, messages, updated_at)
+      VALUES ($1, $2, NOW())
+      ON CONFLICT (session_id)
+      DO UPDATE SET
+        messages = $2,
+        updated_at = NOW()
+    `;
+
+    return await this.query(sql, [sessionId, JSON.stringify(messages)]);
   }
 
-  // Generate embeddings for vector search
-  async generateEmbedding(text) {
-    // This would integrate with Workers AI or Neon's pg_embedding
-    // Placeholder for embedding generation
-    return Array(1536)
-      .fill(0)
-      .map(() => Math.random());
+  // Get agent conversation history
+  async getAgentMemory(sessionId) {
+    const sql = `
+      SELECT messages FROM agent_sessions
+      WHERE session_id = $1
+    `;
+
+    const result = await this.query(sql, [sessionId]);
+    return result[0]?.messages || [];
   }
 }
 
-// Database handler for the worker
+// Database handler for API endpoints
 export async function handleDatabase(request, env) {
-  const db = new NeonDatabase(env);
+  const db = new DatabaseService(env);
   const url = new URL(request.url);
   const pathname = url.pathname;
 
   try {
-    // Query endpoint
-    if (pathname === "/db/query") {
-      const { sql, params } = await request.json();
-      const results = await db.query(sql, params);
-      return new Response(JSON.stringify({ results }), {
+    // Health check
+    if (pathname === "/api/db/health") {
+      await db.query("SELECT 1");
+      return new Response(JSON.stringify({ status: "healthy" }), {
         headers: { "content-type": "application/json" },
       });
     }
 
-    // Agent memory endpoint
-    if (pathname === "/db/agent/memory") {
-      const { agentId, conversation } = await request.json();
-      const result = await db.storeAgentMemory(agentId, conversation);
-      return new Response(JSON.stringify({ success: true, result }), {
+    // Vector search endpoint
+    if (pathname === "/api/db/search") {
+      const { embedding, limit } = await request.json();
+      const results = await db.vectorSearch(embedding, "embeddings", limit);
+      return new Response(JSON.stringify(results), {
         headers: { "content-type": "application/json" },
       });
     }
 
-    // Semantic search endpoint
-    if (pathname === "/db/search") {
-      const { query, limit } = await request.json();
-      const embedding = await db.generateEmbedding(query);
-      const results = await db.semanticSearch(embedding, limit);
-      return new Response(JSON.stringify({ results }), {
+    // Store embedding
+    if (pathname === "/api/db/embed") {
+      const { id, embedding, metadata } = await request.json();
+      await db.storeEmbedding(id, embedding, metadata);
+      return new Response(JSON.stringify({ success: true }), {
         headers: { "content-type": "application/json" },
       });
+    }
+
+    // Agent memory endpoints
+    if (pathname === "/api/db/agent/memory") {
+      if (request.method === "POST") {
+        const { sessionId, messages } = await request.json();
+        await db.storeAgentMemory(sessionId, messages);
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { "content-type": "application/json" },
+        });
+      }
+
+      if (request.method === "GET") {
+        const sessionId = url.searchParams.get("sessionId");
+        const memory = await db.getAgentMemory(sessionId);
+        return new Response(JSON.stringify({ memory }), {
+          headers: { "content-type": "application/json" },
+        });
+      }
     }
 
     return new Response("Database endpoint not found", { status: 404 });
   } catch (error) {
-    return new Response(`Database error: ${error.message}`, {
+    return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: { "content-type": "text/plain" },
+      headers: { "content-type": "application/json" },
     });
   }
 }
