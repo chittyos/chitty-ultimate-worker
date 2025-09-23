@@ -1,7 +1,9 @@
 # ChittyOS Ultimate Worker
 
 ## Overview
-This is the consolidated Cloudflare Worker that combines all 7 workers from the client account into a single, unified production worker.
+Flexible Cloudflare Worker architecture supporting both:
+1. **Unified Worker** - Single worker handling all services
+2. **Multi-Worker with Gateway** - Separate workers with service bindings
 
 ## Consolidated Services
 1. **chittyos-platform-live** - Main platform with AI, Durable Objects, and KV
@@ -18,15 +20,24 @@ This is the consolidated Cloudflare Worker that combines all 7 workers from the 
 - Workers AI integration
 - Handles all 73 domains
 
-## Deployment
+## Deployment Options
 
-### Deploy to ChittyCorp Account (0bc21e3a5a9de1a4cc843be9c3e98121)
+### Option 1: Unified Worker (Recommended for simplicity)
 ```bash
 # Install dependencies
 npm install
 
-# Deploy to production
+# Deploy single worker handling all services
 npm run deploy:production
+```
+
+### Option 2: Multi-Worker Architecture (Recommended for scale)
+```bash
+# Deploy gateway and all service workers
+wrangler deploy --config wrangler.multi.toml
+
+# For development
+./scripts/dev-multi.sh
 ```
 
 ## Routes
