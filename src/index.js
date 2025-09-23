@@ -1,6 +1,7 @@
 // Unified ChittyOS Worker - Consolidating all services into one
 import { handleAnalytics } from "./analytics.js";
 import { handleServices } from "./services.js";
+import { handleDatabase } from "./database.js";
 
 export default {
   async fetch(request, env, ctx) {
@@ -51,6 +52,11 @@ export default {
       // API services endpoints
       if (pathname.startsWith("/api/")) {
         return await handleServices(request, env);
+      }
+
+      // Database endpoints (Neon + Hyperdrive)
+      if (pathname.startsWith("/db/")) {
+        return await handleDatabase(request, env);
       }
 
       // Health check endpoint

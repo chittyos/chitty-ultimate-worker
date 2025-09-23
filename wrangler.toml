@@ -75,10 +75,14 @@ binding = "AI"
 # binding = "PIPELINE"
 # pipeline = "chittyos-events"
 
-# Hyperdrive for database connections
-# [[hyperdrive]]
-# binding = "DATABASE"
-# id = "NEEDS_HYPERDRIVE_ID"
+# Hyperdrive for Neon Postgres connection pooling
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "NEEDS_HYPERDRIVE_ID"
+
+# Alternative: Direct Neon connection (without Hyperdrive)
+# [vars]
+# NEON_DATABASE_URL = "postgresql://user:password@endpoint.neon.tech/database"
 
 # Browser Rendering for dynamic content
 # [browser]
