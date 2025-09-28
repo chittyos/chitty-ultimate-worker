@@ -2,6 +2,9 @@
 import { handleAnalytics } from "./analytics.js";
 import { handleServices } from "./services.js";
 import { handleDatabase } from "./database.js";
+import { handleOpenAPISchema } from "./openapi-schema.js";
+import { SessionService } from "./session-service.js";
+import { MobileBridgeService } from "./mobile-bridge.js";
 
 export default {
   async fetch(request, env, ctx) {
@@ -11,6 +14,17 @@ export default {
 
     // Route based on subdomain or path
     try {
+      // OpenAPI Schema routes (for ChatGPT integration)
+      if (
+        hostname.includes("ai.chitty.cc") ||
+        pathname.startsWith("/openapi")
+      ) {
+        const schemaResponse = await handleOpenAPISchema(request);
+        if (schemaResponse) {
+          return schemaResponse;
+        }
+      }
+
       // Platform routes (main chittyos-platform-live functionality)
       if (hostname.includes("platform") || pathname.startsWith("/platform")) {
         return await handlePlatform(request, env, ctx);
@@ -54,6 +68,18 @@ export default {
         return await handleServices(request, env);
       }
 
+      // Session management endpoints
+      if (pathname.startsWith("/session")) {
+        const sessionService = new SessionService(env);
+        return await sessionService.handleRequest(request);
+      }
+
+      // Mobile bridge endpoints
+      if (pathname.startsWith("/mobile")) {
+        const mobileBridgeService = new MobileBridgeService(env);
+        return await mobileBridgeService.handleRequest(request);
+      }
+
       // Database endpoints (Neon + Hyperdrive)
       if (pathname.startsWith("/db/")) {
         return await handleDatabase(request, env);
@@ -75,6 +101,8 @@ export default {
               "ai",
               "workflows",
               "vectorize",
+              "session",
+              "mobile",
             ],
             timestamp: new Date().toISOString(),
           }),

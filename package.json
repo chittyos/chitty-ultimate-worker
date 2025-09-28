@@ -1,22 +1,20 @@
 {
   "name": "chitty-ultimate-worker",
   "version": "1.0.0",
-  "description": "ChittyOS Unified Production Worker - All Services Consolidated",
+  "description": "ChittyOS Ultimate Unified Worker with session management",
   "main": "src/index.js",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
     "deploy:production": "wrangler deploy --env production",
-    "tail": "wrangler tail"
+    "lint": "echo 'Linting placeholder'",
+    "test": "echo 'Testing placeholder'"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^0.9.0",
-    "pg": "^8.11.0"
+    "@notionhq/client": "^2.2.15"
   },
   "devDependencies": {
-    "wrangler": "^3.0.0"
-  },
-  "engines": {
-    "node": ">=16.0.0"
+    "@cloudflare/workers-types": "^4.20240909.0"
   }
 }
