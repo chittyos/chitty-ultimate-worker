@@ -1,62 +1,40 @@
-# ChittyOS Ultimate Worker
+# ChittyGateway
 
-## Overview
-Flexible Cloudflare Worker architecture supporting both:
-1. **Unified Worker** - Single worker handling all services
-2. **Multi-Worker with Gateway** - Separate workers with service bindings
+Unified Cloudflare Worker Gateway for ChittyOS
 
-## Consolidated Services
-1. **chittyos-platform-live** - Main platform with AI, Durable Objects, and KV
-2. **chitty-bridge** - Bridge service
-3. **cloudeto-cto-mcp** - CTO MCP service
-4. **chittyconsultant** - Consultant service
-5. **chittychain-migrated** - Chain service
-6. **chitty-landing** - Landing page
-7. **chitty-website** - Website (Pages)
+ChittyGateway consolidates all ChittyOS service endpoints into a single, modular Cloudflare Worker. It centralizes routing, session management, identity handling, and service bindings so every ChittyOS subsystem operates through one deterministic gateway layer.
 
-## Architecture
-- Single worker with path-based routing
-- Shared KV namespaces and Durable Objects
-- Workers AI integration
-- Handles all 73 domains
+## Features
 
-## Deployment Options
+* Unified API gateway for all ChittyOS Workers
+* Structured service bindings and multi-worker routing
+* Session and identity management (encrypted, stateless, worker-safe)
+* Cloudflare-native edge execution
+* CI/CD workflow with Neon branching
+* Modular architecture for incremental service expansion
 
-### Option 1: Unified Worker (Recommended for simplicity)
-```bash
-# Install dependencies
-npm install
+## Directory Structure
 
-# Deploy single worker handling all services
-npm run deploy:production
+```
+.github/workflows/   # Deployment and CI/CD pipelines  
+scripts/             # Worker build + automation scripts  
+src/                 # Gateway core, routing, and session engine  
+wrangler.toml        # Worker configuration and bindings  
+package.json         # Build + dependency metadata  
 ```
 
-### Option 2: Multi-Worker Architecture (Recommended for scale)
-```bash
-# Deploy gateway and all service workers
-wrangler deploy --config wrangler.multi.toml
+## Deployment
 
-# For development
-./scripts/dev-multi.sh
+```
+wrangler deploy
 ```
 
-## Routes
-- `/platform/*` - Platform services
-- `/bridge/*` - Bridge API
-- `/consultant/*` - Consultant tools
-- `/chain/*` - Chain services
-- `/cto/*` - CTO MCP
-- `/health` - Health check endpoint
+Ensure required service bindings are configured in `wrangler.toml`.
 
-## Bindings Required
-- 2 KV Namespaces (need to be created in ChittyCorp account)
-- 3 Durable Objects (AIGatewayState, ChittyOSPlatformState, SyncState)
-- Workers AI binding
+## Status
 
-## Migration Status
-- [ ] Download actual worker code from client account
-- [ ] Create KV namespaces in ChittyCorp
-- [ ] Migrate KV data
-- [ ] Deploy and test
-- [ ] Update DNS records
-- [ ] Delete workers from client account
+Active development. Expect rapid iteration as additional ChittyOS modules integrate.
+
+## License
+
+MIT
